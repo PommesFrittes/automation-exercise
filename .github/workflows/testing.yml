@@ -1,0 +1,56 @@
+name: SSE CI/CD
+
+on: push
+
+jobs:
+  style_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: "Install style checker"
+        run: pip install black
+      - name: "Run style check"
+        run: black --check .
+  test:
+    needs: style_check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: "Install requirements"
+        run: pip install -r requirements.txt
+      - name: "Run pytest and collect coverage information"
+        run: coverage run -m pytest
+      - name: "Upload coverage report"
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage_report
+          path: .coverage
+          retention-days: 1
+  coverage_report:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: "Install coverage"
+        run: pip install coverage
+      - name: "Download coverage report"
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage_report
+      - name: "Create XML of coverage report"
+        run: coverage xml
+      - name: "Upload coverage XML"
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage_report-xml
+          path: coverage.xml
+          retention-days: 14
